@@ -1,6 +1,6 @@
 # Bluetooth Chsmartbulb Python API
 
-About Chsmartbulb see https://github.com/pfalcon/Chsmartbulb-led-bulb-speaker
+About Chsmartbulb see https://github.com/pfalcon/Chsmartbulb-led-bulb-speaker.
 I change some socket value and it work!
 The code can control the bulb which "iLight pro" App can control.
 Only impliment changing the color, turning on/off,

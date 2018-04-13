@@ -48,38 +48,45 @@ class Bulb():
         self._name = first_match["name"]
         self._host = first_match["host"]
 
-        self._sock = bt.BluetoothSocket(bt.RFCOMM)
-        self._is_connected = False
+        self._sock = None
+        self._heart_beat_counter = 0
 
     @staticmethod
     def _h(value):
         return bt.binascii.unhexlify(value)
 
     def _send_hex_string(self, hex_string):
+        self._heart_beat_counter += 1
+        if self._heart_beat_counter >= 10:
+            self._heart_beat_counter = 0
+            self._heart_beat()
+
         self._sock.send(self._h(hex_string))
 
     def _recv_bytes(self, n_bytes):
         r = self._sock.recv(n_bytes)
         logging.info('Receive: %s' % bt.binascii.hexlify(r))
 
+    def _heart_beat(self):
+        # Send maybe a query message or a heartbeat message.
+        # Official app do this about once per second.
+        self._sock.send(self._h('01fe0000510210000000008000000080'))
+        self._recv_bytes(16)
+
     def connect(self):
+        self._sock = bt.BluetoothSocket(bt.RFCOMM)
         self._sock.connect((self._host, self._port))
 
         # First of all, send '01234567'
         self._send_hex_string('3031323334353637')
-
-        # Send maybe a query message or a heartbeat message.
-        # Official app do this about once per second.
-        self._send_hex_string('01fe0000510210000000008000000080')
-        self._recv_bytes(16)
-        self._is_connected = True
+        self._heart_beat()
 
     def disconnect(self):
-        self._sock.disconnect()
-        self._is_connected = False
+        self._sock.close()
+        self._sock = None
 
     def is_connected(self):
-        return self._is_connected
+        return self._sock is not None
 
     @staticmethod
     def _get_open_code(is_color_mode, is_enabled):
@@ -144,6 +151,9 @@ class Bulb():
             brightness: 0.0 to 1.0, the brightness.
             hex_color: RGB 6 bytes hex color.
         """
+        if hex_color == '000000':
+            brightness = 0.1
+            hex_color = '110000'
         code = self._get_color_code(brightness, hex_color)
         self._send_hex_string(code)
         self._recv_bytes(28)
